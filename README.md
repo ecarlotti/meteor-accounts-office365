@@ -6,7 +6,7 @@ A login service for Microsoft Office 365 accounts.
 
 Add package to your project.
 ```shellscript
-meteor add lindoelio:accounts-office365
+meteor add ecarlotti:accounts-office365
 ```
 
 If not already added, you also need to add meteor add 

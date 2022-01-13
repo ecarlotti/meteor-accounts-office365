@@ -1,5 +1,6 @@
-/* globals Office365 */
+import { _ } from 'meteor/underscore';
 
+/* globals Office365 */
 Accounts.oauth.registerService('office365');
 
 if (Meteor.isClient) {
@@ -9,7 +10,14 @@ if (Meteor.isClient) {
       options = null;
     }
 
-    Office365.requestCredential(options, Accounts.oauth.credentialRequestCompleteHandler(callback));
+    if (typeof Accounts._options.restrictCreationByEmailDomain === 'string') {
+      options = _.extend({}, options || {});
+      options.loginUrlParameters = _.extend({}, options.loginUrlParameters || {});
+      options.loginUrlParameters.hd = Accounts._options.restrictCreationByEmailDomain;
+    }
+
+    var credentialRequestCompleteCallback = Accounts.oauth.credentialRequestCompleteHandler(callback);      
+    Office365.requestCredential(options, credentialRequestCompleteCallback);
   };
 
   Accounts.registerClientLoginFunction('office365', loginWithOffice365);
@@ -18,8 +26,38 @@ if (Meteor.isClient) {
     return Accounts.applyLoginFunction('office365', arguments);
   };
 } else {
+
+  const Microsoft = {
+
+    serviceName: 'microsoft',
+    // https://msdn.microsoft.com/en-us/library/office/dn659736.aspx
+    whitelistedFields: ['id', 'emails', 'first_name', 'last_name', 'name', 'gender', 'locale'],
+
+  };
+
+  /**
+     If autopublish is on, publish these user fields. Login service
+    packages (eg accounts-google). Notably, this isn't implemented with
+    multiple publishes since DDP only merges only across top-level
+    fields, not subfields (such as 'services.microsoft.accessToken')
+  */
   Accounts.addAutopublishFields({
-    forLoggedInUser: ['services.office365'],
-    forOtherUsers: ['services.office365.mail']
-  });
+
+    forLoggedInUser: _.map(
+        // publish access token since it can be used from the client
+        Microsoft.whitelistedFields.concat(['accessToken', 'expiresAt']), // don't publish refresh token
+        function (subfield) { return 'services.microsoft.' + subfield; }),
+
+    forOtherUsers: _.map(
+        // even with autopublish, no legitimate web app should be
+        // publishing all users' emails
+        _.without(Microsoft.whitelistedFields, 'emails'),
+        function (subfield) { return 'services.microsoft.' + subfield; })
+  });  
+
+  // Original code - Too simple and insecure for what we intend to do...
+  // Accounts.addAutopublishFields({
+  //   forLoggedInUser: ['services.office365'],
+  //   forOtherUsers: ['services.office365.mail']
+  // });
 }
