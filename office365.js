@@ -29,9 +29,9 @@ if (Meteor.isClient) {
 
   const Microsoft = {
 
-    serviceName: 'microsoft',
+    serviceName: 'office365',
     // https://msdn.microsoft.com/en-us/library/office/dn659736.aspx
-    whitelistedFields: ['id', 'emails', 'first_name', 'last_name', 'name', 'gender', 'locale'],
+    whitelistedFields: ['id', 'displayName', 'givenName', 'surname', 'username', 'mail', 'preferredLanguage', 'jobTitle', 'mobilePhone', 'userPrincipalName'],
 
   };
 
@@ -46,13 +46,13 @@ if (Meteor.isClient) {
     forLoggedInUser: _.map(
         // publish access token since it can be used from the client
         Microsoft.whitelistedFields.concat(['accessToken', 'expiresAt']), // don't publish refresh token
-        function (subfield) { return 'services.microsoft.' + subfield; }),
+        function (subfield) { return 'services.office365.' + subfield; }),
 
     forOtherUsers: _.map(
         // even with autopublish, no legitimate web app should be
         // publishing all users' emails
-        _.without(Microsoft.whitelistedFields, 'emails'),
-        function (subfield) { return 'services.microsoft.' + subfield; })
+        _.without(Microsoft.whitelistedFields, ['mobilePhone', 'jobTitle', 'officeLocation', 'businessPhones']),
+        function (subfield) { return 'services.office365.' + subfield; })
   });  
 
   // Original code - Too simple and insecure for what we intend to do...
